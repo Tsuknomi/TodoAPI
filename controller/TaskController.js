@@ -1,8 +1,9 @@
 const Task =  require("../models/Task");
-
 const {google} = require('googleapis');
-const { stringify } = require("querystring");
-require('dotenv').config();
+
+
+let message = "";
+let type = "";
 
 
 // Chamando as credenciais da conta do Google Calendar e a ID da Agenda utilizada
@@ -23,7 +24,7 @@ const auth = new google.auth.JWT(
 // Fuso Horario
 const TIMEOFFSET = '-03:00';
 
-// string no formato data-horario pro calendario
+// convertendo a data em string no formato data-horario pro calendario
 const dateTimeForCalander = () => {
 
     let date = new Date();
@@ -60,7 +61,7 @@ const dateTimeForCalander = () => {
     }
 };
 
-// Inserindo um evento novo no calendario
+// Função para inserir um evento novo no Google calendario
 const insertEvent = async (event) => {
 
     try {
@@ -83,11 +84,8 @@ const insertEvent = async (event) => {
 
 
 
-let message = "";
-let type = "";
 
 
-// retornando mensagem de sucesso (ou não) da inclusão no MongoDB
 const getAllTasks = async (req, res) => {
   try{
     //timeout para que as mensagens de alerta sumam ao recarregar a página
@@ -120,12 +118,13 @@ const createTask = async (req, res) => {
     return res.redirect("/")
   }
   
-  //espera a criação da tarefa e retorna mensagem de sucesso
+  //espera a criação da tarefa, a inclusão no google calendario e retorna mensagem de sucesso
   try {
     await Task.create(task)
-    console.log(JSON.stringify(task.task).replace(/[^\w\s]/gi, ''))
 
+    //evento modelo para API do google calendario
     const event = {
+
       'summary': JSON.stringify(task.task).replace(/[^\w\s]/gi, ''),
       'start': {
           'dateTime': dateTime['start'],
@@ -137,6 +136,7 @@ const createTask = async (req, res) => {
       }
   };
 
+      //aguarda inserir o evento no google calendar
   await insertEvent(event)
     .then((res) => {
         console.log(res);
@@ -146,6 +146,7 @@ const createTask = async (req, res) => {
         console.log(err);
     });
 
+      //retorna mensagem de sucesso
     message = "Tarefa criada com sucesso!"
     type = "success"
     return res.redirect("/") 
